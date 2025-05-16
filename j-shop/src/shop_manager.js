@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 // import { useCallback, useMemo } from "react";
 import { Search, Package, ShoppingCart, BarChart, Plus } from "lucide-react";
 
@@ -50,56 +50,51 @@ const GestionMagasin = () => {
 		localStorage.setItem("ventes", JSON.stringify(ventes));
 	}, [ventes]);
 
-	const [isLoading, setIsLoading] = useState(false);
+	/* The above code is using React's useState hook to create a state variable called `isLoading` and a
+function to update it called `setIsLoading`. The initial value of `isLoading` is set to `false`.
+This code is typically used in React functional components to manage state within the component. */
+	// const [isLoading, setIsLoading] = useState(false);
 
 	// Ajouter un nouveau produit
-	const ajouterProduit = useCallback(
-		async (e) => {
-			e.preventDefault();
-
-			if (isLoading) return;
-
-			if (!nouveauProduit.nom || !nouveauProduit.prix) {
-				alert("Veuillez remplir tous les champs obligatoires");
-				return;
-			}
-
-			setIsLoading(true);
-
-			try {
-				setProduits((prevProduits) => [
-					...prevProduits,
-					{
-						id: Date.now(),
-						...nouveauProduit,
-						prix: parseFloat(nouveauProduit.prix),
-						stock: parseInt(nouveauProduit.stock) || 0,
-						dateCreation: new Date().toLocaleDateString("fr-FR"),
-					},
-				]);
-				setNouveauProduit({
-					nom: "",
-					prix: "",
-					stock: "",
-					categorie: "",
-				});
-				setAfficherFormulaire(false);
-			} finally {
-				setIsLoading(false);
-			}
-		},
-		[nouveauProduit, isLoading]
-	);
+	const ajouterProduit = (e) => {
+		e.preventDefault();
+		if (nouveauProduit.nom && nouveauProduit.prix) {
+			return;
+		}
+		setProduits((preProduits) => [
+			...preProduits,
+			{
+				id: Date.now(),
+				...nouveauProduit,
+				prix: parseFloat(nouveauProduit.prix),
+				stock: parseInt(nouveauProduit.stock) || 0,
+				dateCreation: new Date().toLocaleDateString(),
+			},
+		]);
+		setNouveauProduit({
+			nom: "",
+			prix: "",
+			stock: "",
+			categorie: "",
+		});
+		setAfficherFormulaire(false);
+	};
 
 	// Filtrer les produits
-	const produitsFiltres = produits.filter((produit) => {
-		const matchRecherche = produit.nom
-			.toLowerCase()
-			.includes(recherche.toLowerCase());
-		const matchCategorie =
-			categorieFilter === "Toutes" || produit.categorie === categorieFilter;
-		return matchRecherche && matchCategorie;
-	});
+	const produitsFiltres = useMemo(() => {
+		return produits.filter(
+			(produit) =>
+				categorieFilter === "" || produit.categorie === categorieFilter
+		);
+	}, [produits, categorieFilter]);
+	// const produitsFiltres = produits.filter((produit) => {
+	// 	const matchRecherche = produit.nom
+	// 		.toLowerCase()
+	// 		.includes(recherche.toLowerCase());
+	// 	const matchCategorie =
+	// 		categorieFilter === "Toutes" || produit.categorie === categorieFilter;
+	// 	return matchRecherche && matchCategorie;
+	// });
 
 	// Enregistrer une vente //
 	const enregistrerVente = (produitId, quantite) => {
@@ -351,21 +346,13 @@ const GestionMagasin = () => {
 											Close
 										</button>
 										<button
-											onClick={ajouterProduit}
-											type="submit"
-											disabled={isLoading}
+											onClick={() => {
+												if (nouveauProduit.nom && nouveauProduit.prix) {
+													ajouterProduit({});
+												}
+											}}
 											className="ajouter">
-											{isLoading ? (
-												<>
-													<span
-														className="spinner-border spinner-border-sm me-2"
-														role="status"
-														aria-hidden="true"></span>
-													Ajout en cours...
-												</>
-											) : (
-												"Ajouter"
-											)}
+											Ajouter
 										</button>
 									</div>
 								</div>
