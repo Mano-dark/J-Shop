@@ -1,9 +1,7 @@
-import './App.css';
-import GestionMagasin from './shop_manager';
+import "./App.css";
+import GestionMagasin from "./files/shop_manager";
 function App() {
-  return (
-   < GestionMagasin/ >
-  );
+	return <GestionMagasin />;
 }
 
 export default App;
