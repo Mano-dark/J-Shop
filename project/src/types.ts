@@ -4,7 +4,7 @@ export interface Product {
   name: string;
   price: number;
   stock: number;
-  initialStock?: number;
+  // initialStock?: number;
   description?: string;
   category_id: string | null;
   operator: 'MTN' | 'Moov' | 'Celtis' | null;

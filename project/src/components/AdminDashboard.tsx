@@ -42,66 +42,66 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   }, []);
 
   // Charger les données
-  // useEffect(() => {
-  //   async function loadData() {
-  //     // Charger depuis localStorage
-  //     const localProducts = localStorage.getItem('products');
-  //     const localCategories = localStorage.getItem('categories');
-  //     const localSales = localStorage.getItem('sales');
-  //     const localBalances = localStorage.getItem('mobileMoneyBalances');
-  //     const localTransactions = localStorage.getItem('mobileMoneyTransactions');
-  //     const localQueue = localStorage.getItem('offlineQueue');
+  useEffect(() => {
+    async function loadData() {
+      // Charger depuis localStorage
+      const localProducts = localStorage.getItem('products');
+      const localCategories = localStorage.getItem('categories');
+      const localSales = localStorage.getItem('sales');
+      const localBalances = localStorage.getItem('mobileMoneyBalances');
+      const localTransactions = localStorage.getItem('mobileMoneyTransactions');
+      const localQueue = localStorage.getItem('offlineQueue');
 
-  //     if (localProducts) setProducts(JSON.parse(localProducts));
-  //     if (localCategories) setCategories(JSON.parse(localCategories));
-  //     if (localSales) setSales(JSON.parse(localSales));
-  //     if (localBalances) setMobileMoneyBalances(JSON.parse(localBalances));
-  //     if (localTransactions) setMobileMoneyTransactions(JSON.parse(localTransactions));
-  //     if (localQueue) setOfflineQueue(JSON.parse(localQueue) || []);
+      if (localProducts) setProducts(JSON.parse(localProducts));
+      if (localCategories) setCategories(JSON.parse(localCategories));
+      if (localSales) setSales(JSON.parse(localSales));
+      if (localBalances) setMobileMoneyBalances(JSON.parse(localBalances));
+      if (localTransactions) setMobileMoneyTransactions(JSON.parse(localTransactions));
+      if (localQueue) setOfflineQueue(JSON.parse(localQueue) || []);
 
-  //     // Si en ligne, synchroniser avec Supabase
-  //     if (isOnline) {
-  //       try {
-  //         const [
-  //           { data: productsData, error: productsError },
-  //           { data: categoriesData, error: categoriesError },
-  //           { data: salesData, error: salesError },
-  //           { data: balancesData, error: balancesError },
-  //           { data: transactionsData, error: transactionsError },
-  //         ] = await Promise.all([
-  //           supabase.from('products').select('*'),
-  //           supabase.from('categories').select('*'),
-  //           supabase.from('sales').select('*'),
-  //           supabase.from('mobile_money_balances').select('*'),
-  //           supabase.from('mobile_money_transactions').select('*'),
-  //         ]);
+      // Si en ligne, synchroniser avec Supabase
+      if (isOnline) {
+        try {
+          const [
+            { data: productsData, error: productsError },
+            { data: categoriesData, error: categoriesError },
+            { data: salesData, error: salesError },
+            { data: balancesData, error: balancesError },
+            { data: transactionsData, error: transactionsError },
+          ] = await Promise.all([
+            supabase.from('products').select('*'),
+            supabase.from('categories').select('*'),
+            supabase.from('sales').select('*'),
+            supabase.from('mobile_money_balances').select('*'),
+            supabase.from('mobile_money_transactions').select('*'),
+          ]);
 
-  //         if (productsError || categoriesError || salesError || balancesError || transactionsError) {
-  //           setError('Erreur lors du chargement des données');
-  //           console.error('Erreurs:', productsError, categoriesError, salesError, balancesError, transactionsError);
-  //           return;
-  //         }
+          if (productsError || categoriesError || salesError || balancesError || transactionsError) {
+            setError('Erreur lors du chargement des données');
+            console.error('Erreurs:', productsError, categoriesError, salesError, balancesError, transactionsError);
+            return;
+          }
 
-  //         setProducts(productsData || []);
-  //         setCategories(categoriesData || []);
-  //         setSales(salesData || []);
-  //         setMobileMoneyBalances(balancesData || []);
-  //         setMobileMoneyTransactions(transactionsData || []);
+          setProducts(productsData || []);
+          setCategories(categoriesData || []);
+          setSales(salesData || []);
+          setMobileMoneyBalances(balancesData || []);
+          setMobileMoneyTransactions(transactionsData || []);
 
-  //         localStorage.setItem('products', JSON.stringify(productsData || []));
-  //         localStorage.setItem('categories', JSON.stringify(categoriesData || []));
-  //         localStorage.setItem('sales', JSON.stringify(salesData || []));
-  //         localStorage.setItem('mobileMoneyBalances', JSON.stringify(balancesData || []));
-  //         localStorage.setItem('mobileMoneyTransactions', JSON.stringify(transactionsData || []));
-  //         setError(null);
-  //       } catch (err) {
-  //         setError('Erreur réseau');
-  //         console.error('Erreur:', err);
-  //       }
-  //     }
-  //   }
-  //   loadData();
-  //}, [isOnline]);
+          localStorage.setItem('products', JSON.stringify(productsData || []));
+          localStorage.setItem('categories', JSON.stringify(categoriesData || []));
+          localStorage.setItem('sales', JSON.stringify(salesData || []));
+          localStorage.setItem('mobileMoneyBalances', JSON.stringify(balancesData || []));
+          localStorage.setItem('mobileMoneyTransactions', JSON.stringify(transactionsData || []));
+          setError(null);
+        } catch (err) {
+          setError('Erreur réseau');
+          console.error('Erreur:', err);
+        }
+      }
+    }
+    loadData();
+  }, [isOnline]);
 
   // Synchroniser les actions hors ligne
 	useEffect(() => {
@@ -233,11 +233,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   const employeeSalesStats = useMemo(() => {
     const employeeIds = [...new Set(sales.map(sale => sale.employee_id))];
-    const stats: Record<string, { products: Record<string, { quantity: number; totalAmount: number; productName: string; operator?: string }> }> = {};
+    const stats: Record<string, { products: Record<string, { quantity: number; totalAmount: number; productName: string; operator?: string | null }> }> = {};
 
     employeeIds.forEach(id => {
       const employeeSales = sales.filter(sale => sale.employee_id === id);
-      const productStats: Record<string, { quantity: number; totalAmount: number; productName: string; operator: string }> = {};
+      const productStats: Record<string, { quantity: number; totalAmount: number; productName: string; operator: string | null }> = {};
 
       employeeSales.forEach(sale => {
         const product = products.find(p => p.id === sale.product_id);
@@ -304,7 +304,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           stock: productData.stock,
           // initial_stock: productData.initialStock,
           description: productData.description,
-          category_id: productData.categoryId,
+          category_id: productData.category_id,
           operator: productData.operator || null,
         }]);
         if (error) throw error;
@@ -914,7 +914,7 @@ const ProductModal: React.FC<{
 }> = ({ product, categories, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: product?.name || '',
-    categoryId: product?.category_id || '',
+    category_id: product?.category_id || '',
     price: product?.price || 0,
     stock: product?.stock || 0,
     // initialStock: product?.initialStock || 0,
@@ -933,7 +933,7 @@ const ProductModal: React.FC<{
       setError('Le nom du produit est requis.');
       return;
     }
-    if (!formData.categoryId) {
+    if (!formData.category_id) {
       setError('Veuillez sélectionner une catégorie.');
       return;
     }
@@ -949,14 +949,14 @@ const ProductModal: React.FC<{
     //   setError('Le stock initial ne peut pas être négatif.');
     //   return;
     // }
-    if (formData.categoryId === phonePlanCategoryId && !['MTN', 'Moov', 'Celtis'].includes(formData.operator)) {
+    if (formData.category_id === phonePlanCategoryId && !['MTN', 'Moov', 'Celtis'].includes(formData.operator)) {
       setError('Veuillez sélectionner un opérateur valide pour les forfaits téléphoniques.');
       return;
     }
 
     const dataToSave: Omit<Product, 'id' | 'created_at'> = {
       ...formData,
-      operator: formData.categoryId === phonePlanCategoryId ? (formData.operator as 'MTN' | 'Moov' | 'Celtis') : undefined
+      operator: formData.category_id === phonePlanCategoryId ? (formData.operator as 'MTN' | 'Moov' | 'Celtis' ) : null
     };
 
     onSave(dataToSave);
@@ -990,8 +990,8 @@ const ProductModal: React.FC<{
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Catégorie</label>
             <select
-              value={formData.categoryId}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value, operator: e.target.value === phonePlanCategoryId ? formData.operator : '' })}
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value, operator: e.target.value === phonePlanCategoryId ? formData.operator : '' })}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
               required
             >
@@ -1002,7 +1002,7 @@ const ProductModal: React.FC<{
             </select>
           </div>
           
-          {formData.categoryId === phonePlanCategoryId && (
+          {formData.category_id === phonePlanCategoryId && (
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Opérateur</label>
               <select
