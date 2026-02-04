@@ -186,7 +186,7 @@ const App: React.FC = () => {
     <div className="min-h-screen">
       {showRegister ? (
         <Register onLogin={handleLogin}
-        onRegisterSuccess={() => setShowRegister(false)} />
+         />
       ) : !user || !role ? (
 
           <Login 
