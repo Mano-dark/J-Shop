@@ -138,19 +138,36 @@ const App: React.FC = () => {
     console.log("handleLogin appelé !", {
       userId: loggedUser?.id,
       email: loggedUser?.email,
-      role: userRole
+      role: userRole,
+      timestamp: new Date().toISOString(), // ← utile pour le debug chronologique
     });
   
+    // Mise à jour des états
     setUser(loggedUser);
     setRole(userRole);
     setLoading(false); // ← très important, sinon loading reste true pour toujours !
+  
+    // Optionnel : sauvegarde dans localStorage pour persistance de session
+    localStorage.setItem('user', JSON.stringify(loggedUser));
+    localStorage.setItem('role', userRole);
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (!window.confirm("Vraiment vous déconnecter ?")) return;
+  
+    try {
+      await supabase.auth.signOut();
+      // Optionnel : toast.success("Déconnexion réussie")
+    } catch (err) {
+      console.error("Erreur logout:", err);
+      // toast.error("Erreur lors de la déconnexion")
+    }
+  
     setUser(null);
     setRole(null);
     setLoading(false);
+    localStorage.removeItem('user');
+    localStorage.removeItem('role');
   };
 
   if (loading) {
@@ -168,7 +185,8 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen">
       {showRegister ? (
-        <Register onRegisterSuccess={() => setShowRegister(false)} />
+        <Register onLogin={handleLogin}
+        onRegisterSuccess={() => setShowRegister(false)} />
       ) : !user || !role ? (
 
           <Login 

@@ -24,51 +24,60 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
     setLoading(true);
 
     try {
-      // Authentification avec Supabase
+      // Connexion Supabase Auth avec email + mot de passe normal
       const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (authError || !user) {
-        setError('Identifiants invalides');
+        setError('Email ou mot de passe incorrect');
         setLoading(false);
         return;
       }
 
-      // Vérifier le rôle de l'utilisateur et le username
-      const { data: userData, error: roleError } = await supabase
+      // Récupération profil (sans .single() pour éviter 406)
+      const { data, error: userError } = await supabase
         .from('users')
         .select('role, username')
         .eq('id', user.id)
-        .single();
-        
-      if (roleError || !userData || !['admin', 'employee'].includes(userData.role)) {
-        setError('Compte non autorisé');
-        setLoading(false);
+        .limit(1);
+
+      if (userError || !data || data.length === 0) {
+        setError('Profil introuvable');
         await supabase.auth.signOut();
+        setLoading(false);
         return;
       }
 
-      //  Si l'utilisateur n'a pas encore de username → on lui demande
+      const userData = data[0];
+
+      // Vérifier rôle
+      if (!['admin', 'employee'].includes(userData.role)) {
+        setError('Compte non autorisé');
+        await supabase.auth.signOut();
+        setLoading(false);
+        return;
+      }
+
+      // Demande username si absent
       if (!userData.username) {
         setCurrentUser(user);
         setCurrentRole(userData.role);
         setShowUsernameForm(true);
-        // setLoading(false);
-        return; // On attend qu'il choisisse un username
+        setLoading(false);
+        return;
       }
 
-      // Appeler onLogin avec l'utilisateur et son rôle
+      // Connexion réussie
       onLogin(user, userData.role);
     } catch (err: any) {
+      console.error('Erreur connexion:', err);
       setError('Erreur lors de la connexion');
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
-
 
   // Sauvegarde du username choisi
   const handleUsernameSubmit = async (e: React.FormEvent) => {
@@ -178,19 +187,19 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
 
           <form onSubmit={handleLoginSubmit} className="w-full max-w-md space-y-6">
             {/* Email */}
-          <div>
-         <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
-           <input
-             type="email"
-             value={email}
-             onChange={(e) => setEmail(e.target.value)}
-             className="w-full px-4 py-2  bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-slate-400"
-             placeholder="ex@boutiquepro.com"
-             required
-           />
-         </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Email</label>
+              <input
+                type="text"
+                value={email}
+                onChange={(e) => setEmail(e.target.value.trim())}
+                className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 text-md placeholder-slate-400"
+                placeholder="email"
+                required
+              />
+            </div>
 
-            {/* Password */}
+            {/* Mot de passe normal */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-700">Mot de passe</label>
               <div className="relative">
@@ -198,7 +207,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900  placeholder-slate-400 pr-14"
+                  className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 text-md placeholder-slate-400 pr-14"
+                  placeholder="mot de passe"
                   required
                 />
                 <button
@@ -236,9 +246,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
             </button>
           </form>
 
-          {/* Comptes de démonstration - remis ici */}
+          {/* Comptes de démonstration */}
           <div className="mt-8 pt-6 border-t border-slate-200">
-            <div className="text-xs text-slate-500 space-y-3 rounded-2xl p-4">
+            <div className="text-xs text-slate-500 space-y-3 rounded-2xl p-4 bg-slate-50">
               <p className="font-semibold text-slate-700 mb-3 flex items-center">
                 <Shield className="w-4 h-4 mr-2" />
                 Comptes de démonstration
@@ -246,14 +256,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegisterClick }) => {
               <div className="grid grid-cols-1 gap-3">
                 <div className="bg-white rounded-xl p-3 border border-slate-200">
                   <p className="text-slate-900 font-semibold">👑 Administrateur</p>
-                  <p className="text-slate-600">admin@boutiquepro.com / AZERTY2005</p>
+                  <p className="text-slate-600">admin@boutiquepro.com / [mot de passe admin]</p>
                 </div>
                 <div className="bg-white rounded-xl p-3 border border-slate-200">
                   <p className="text-slate-900 font-semibold">👤 Employé</p>
-                  <p className="text-slate-600">employee@boutiquepro.com / employe123</p>
+                  <p className="text-slate-600">Utilisez votre email + mot de passe</p>
                 </div>
               </div>
             </div>
+
           {/* Lien vers l'inscription - placé juste en dessous */}
             <div className="mt-6 text-center">
               <button

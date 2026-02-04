@@ -1,17 +1,15 @@
 import React, { useState } from 'react';
-import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface RegisterProps {
-  onRegisterSuccess: () => void; // Retour au login après succès
+  onLogin: (user: any, role: 'admin' | 'employee') => void;
+  // onRegisterSuccess?: () => void; // Optionnel maintenant
 }
 
-const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
+const Register: React.FC<RegisterProps> = ({ onLogin }) => {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,13 +20,6 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
     setSuccess('');
     setLoading(true);
 
-    // Vérifications rapides
-    if (password !== confirmPassword) {
-      setError('Les mots de passe ne correspondent pas');
-      setLoading(false);
-      return;
-    }
-
     if (username.trim().length < 3) {
       setError('Le nom d\'utilisateur doit contenir au moins 3 caractères');
       setLoading(false);
@@ -36,7 +27,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
     }
 
     try {
-      // 1. Vérifier si le username existe déjà
+      // 1. Vérifier username unique
       const { data: existing } = await supabase
         .from('users')
         .select('id')
@@ -49,10 +40,11 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
         return;
       }
 
-      // 2. Créer l'utilisateur dans Supabase Auth
+      // 2. Créer un mot de passe aléatoire (l'employé utilisera le mot de passe partagé)
+
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email,
-        password,
+        password: 'admin1234',
       });
 
       if (signUpError || !user) {
@@ -61,25 +53,39 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
         return;
       }
 
-      // 3. Enregistrer username + rôle dans la table users
+      // 3. Insérer dans la table users
       const { error: insertError } = await supabase
         .from('users')
         .insert({
           id: user.id,
           email: user.email,
           username: username.trim(),
-          role: 'employee', // Tous les nouveaux comptes créés ici sont employés
+          role: 'employee',
         });
 
       if (insertError) {
         console.error('Erreur insertion users:', insertError);
         setError('Compte créé mais erreur lors de la configuration du profil');
-        await supabase.auth.signOut(); // Nettoyage
+        await supabase.auth.signOut();
         return;
       }
 
-      setSuccess('Compte employé créé avec succès ! Vous pouvez maintenant vous connecter.');
-      setTimeout(() => onRegisterSuccess(), 2500); // Retour auto au login après 2.5s
+      // 4. Connexion automatique + redirection vers Employee Dashboard
+      setSuccess('Compte créé ! Connexion automatique en cours...');
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'admin1234', // ← mot de passe partagé
+      });
+
+      if (signInError) {
+        console.warn('[REGISTER] Connexion auto échouée, mais compte créé', signInError);
+        setError('Compte créé mais connexion automatique échouée. Connectez-vous manuellement.');
+      } else {
+        // Redirection via onLogin
+        onLogin(user, 'employee');
+      }
+
     } catch (err: any) {
       console.error('Erreur inscription:', err);
       setError('Erreur inattendue lors de l\'inscription');
@@ -111,8 +117,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-500 text-sm placeholder-slate-400"
+                onChange={(e) => setUsername(e.target.value.trim())}
+                className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-500 text-md placeholder-slate-400"
                 placeholder="pseudo unique"
                 required
                 minLength={3}
@@ -127,42 +133,8 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-500 text-sm placeholder-slate-400"
-                placeholder="nouvel.employe@boutiquepro.com"
-                required
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700">Mot de passe</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-500 text-sm placeholder-slate-400"
-                  required
-                  minLength={6}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700">Confirmer le mot de passe</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-500 text-sm placeholder-slate-400"
+                className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-500 text-md placeholder-slate-400"
+                placeholder="ex@boutiquepro.com"
                 required
               />
             </div>
@@ -198,7 +170,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
             </button>
           </form>
 
-          {/* Retour au login */}
+          {/* Retour au login
           <div className="mt-6 text-center">
             <button
               onClick={onRegisterSuccess}
@@ -206,7 +178,7 @@ const Register: React.FC<RegisterProps> = ({ onRegisterSuccess }) => {
             >
               ← J'ai déjà un compte
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

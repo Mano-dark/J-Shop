@@ -22,9 +22,32 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ onLogout, employe
   const [offlineQueue, setOfflineQueue] = useState<
     { action: 'addSale' | 'addTransaction' | 'updateBalance'; data: any }[]
   >([]);
+  const [employeeUsername, setEmployeeUsername] = useState<string>('Chargement...'); // ← Nouveau state
 
   // Mettre à jour l'état de connexion
   useEffect(() => {
+    const fetchEmployeeUsername = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('username')
+          .eq('id', employeeId)
+          .single();
+
+        if (error) throw error;
+        setEmployeeUsername(data?.username || 'Employé');
+      } catch (err: any) {
+        console.error('Erreur chargement username:', err);
+        setEmployeeUsername('Employé');
+        setError('Impossible de charger votre nom d\'utilisateur');
+      }
+    };
+    if (employeeId) {
+      fetchEmployeeUsername();
+    }
+  }, [employeeId]);
+  
+    useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -355,7 +378,7 @@ const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ onLogout, employe
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Tableau de bord employé</h1>
               <p className="text-slate-600 font-medium">
-                Employé {employeeId} {isOnline ? '(En ligne)' : '(Hors ligne)'}
+                Bienvenue,  {employeeUsername} {isOnline ? '(En ligne)' : '(Hors ligne)'}
               </p>
             </div>
           </div>
